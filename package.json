@@ -58,7 +58,15 @@
       "name": "list-transactions",
       "title": "List Transactions",
       "description": "Lists your latest transactions",
-      "mode": "view"
+      "mode": "view",
+      "arguments": [
+        {
+          "name": "query",
+          "type": "text",
+          "required": false,
+          "placeholder": "Query"
+        }
+      ]
     }
   ],
   "dependencies": {
