@@ -2,6 +2,7 @@ import {
   Action,
   ActionPanel,
   Alert,
+  Color,
   Icon,
   Keyboard,
   List,
@@ -10,7 +11,7 @@ import {
   popToRoot,
   showToast,
 } from "@raycast/api";
-import { useCachedPromise } from "@raycast/utils";
+import { getProgressIcon, useCachedPromise } from "@raycast/utils";
 import { BudgetForm } from "./components/BudgetForm";
 import { TransactionsList } from "./components/TransactionsList";
 import { BudgetDetails } from "./components/BudgetDetails";
@@ -83,7 +84,11 @@ export default function Command() {
               return progress
                 ? [
                     {
-                      text: `${"━".repeat(Math.min(8, Math.round(progress.percent / 12.5)))}${"─".repeat(8 - Math.min(8, Math.round(progress.percent / 12.5)))} ${formatJPY.format(progress.spent)} / ${formatJPY.format(budget.amount)} · ${Math.round(progress.percent)}%`,
+                      icon: getProgressIcon(
+                        Math.min(1, progress.percent / 100),
+                        progress.percent >= 100 ? Color.Red : Color.Green,
+                      ),
+                      text: `${formatJPY.format(progress.spent)} / ${formatJPY.format(budget.amount)} · ${Math.round(progress.percent)}%`,
                       tooltip: "This month: spent / saved limit",
                     },
                   ]

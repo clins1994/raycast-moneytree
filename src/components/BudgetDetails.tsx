@@ -1,5 +1,5 @@
 import { Action, ActionPanel, Color, Detail, Icon, Keyboard } from "@raycast/api";
-import { useCachedPromise } from "@raycast/utils";
+import { getProgressIcon, useCachedPromise } from "@raycast/utils";
 import { BudgetForm } from "./BudgetForm";
 import { TransactionsList } from "./TransactionsList";
 import {
@@ -53,9 +53,6 @@ export function BudgetDetails({
     periods && getBudgetProgress(budget, categories, periods, new Date(today.getFullYear(), today.getMonth() - 1, 1));
   const remaining = progress && budget.amount - progress.spent;
   const percent = progress && Math.round(progress.percent);
-  const bar = progress
-    ? `${"━".repeat(Math.min(20, Math.round(progress.percent / 5)))}${"─".repeat(20 - Math.min(20, Math.round(progress.percent / 5)))}`
-    : "";
   const month = new Intl.DateTimeFormat("en", { month: "long", year: "numeric" }).format(today);
   const escapeMarkdown = (text: string) => text.replace(/[\\`*_{}[\]()#+.!|<>-]/g, "\\$&").replace(/[\r\n]+/g, " ");
   const markdown = [
@@ -63,7 +60,7 @@ export function BudgetDetails({
     `### ${month} · ${dates.startDate} – ${dates.endDate}`,
     `**Budget:** ${yen.format(budget.amount)}`,
     progress
-      ? `**Spent:** ${yen.format(progress.spent)}  ·  **Remaining:** ${yen.format(remaining ?? 0)}  ·  **Used:** ${percent}%\n\n${bar}`
+      ? `**Spent:** ${yen.format(progress.spent)}  ·  **Remaining:** ${yen.format(remaining ?? 0)}  ·  **Used:** ${percent}%`
       : isLoading
         ? "Loading spending…"
         : `Spending unavailable${error ? " (request failed)" : " (unexpected period data)"}. The saved limit is still available.`,
@@ -104,7 +101,14 @@ export function BudgetDetails({
                 text={yen.format(remaining ?? 0)}
                 color={remaining! < 0 ? Color.Red : Color.Green}
               />
-              <Detail.Metadata.Label title="Used" text={`${percent}%`} />
+              <Detail.Metadata.Label
+                title="Used"
+                icon={getProgressIcon(
+                  Math.min(1, progress.percent / 100),
+                  progress.percent >= 100 ? Color.Red : Color.Green,
+                )}
+                text={`${percent}%`}
+              />
             </>
           )}
           {previous && <Detail.Metadata.Label title="Last month" text={yen.format(previous.spent)} />}
