@@ -28,13 +28,13 @@ export const CATEGORY_ICONS: Record<string, Icon> = {
   uncategorized: Icon.QuestionMark,
   financial_services: Icon.BarChart,
   investments: Icon.LineChart,
-  sporting_goods: Icon.Figure,
+  sporting_goods: Icon.Person,
   electronics: Icon.ComputerChip,
-  clothing: Icon.TShirt,
+  clothing: Icon.Tag,
   cafe_coffee_shop: Icon.Mug,
-  restaurant: Icon.ForkKnife,
+  restaurant: Icon.Mug,
   train: Icon.Train,
-  bus: Icon.Bus,
+  bus: Icon.Train,
   taxi: Icon.Car,
   air_travel: Icon.Airplane,
   hotel: Icon.House,
@@ -52,13 +52,22 @@ export function getCategoryIcon(iconKey?: string | null): Icon {
   return iconKey ? CATEGORY_ICONS[iconKey] || Icon.Tag : Icon.Tag;
 }
 
-export function getCategoryDisplayIcon(category: Category, categoriesById?: Map<number, Category>): Icon {
+export function getCategoryDisplayIcon(
+  category: Category,
+  categoriesById?: Map<number, Category>,
+  seenCategoryIds = new Set<number>(),
+): Icon {
+  if (seenCategoryIds.has(category.id)) {
+    return Icon.Tag;
+  }
+  seenCategoryIds.add(category.id);
+
   if (category.icon_key && CATEGORY_ICONS[category.icon_key]) {
     return CATEGORY_ICONS[category.icon_key];
   }
 
   const parent = category.parent_id ? categoriesById?.get(category.parent_id) : undefined;
-  return parent ? getCategoryDisplayIcon(parent, categoriesById) : Icon.Tag;
+  return parent ? getCategoryDisplayIcon(parent, categoriesById, seenCategoryIds) : Icon.Tag;
 }
 
 export function isCustomCategory(category: Category): boolean {
