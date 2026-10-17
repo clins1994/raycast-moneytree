@@ -42,7 +42,7 @@ try {
       },
     ],
   });
-  const { changeBudget, describeBudgets, getBudgetCategoryIds, saveBudgetForTool } = await import(output);
+  const { changeBudget, describeBudgets, getBudgetCategoryIds, getBudgetProgress, getSpendingPeriodDates, saveBudgetForTool } = await import(output);
   const expense = { id: 71, name: "Train", parent_id: 69, category_type: "expense" };
   const parent = { id: 69, name: "Transport", parent_id: null, category_type: "expense" };
   const income = { id: 101, name: "Salary", parent_id: null, category_type: "income" };
@@ -93,6 +93,29 @@ try {
     ];
     assert.deepEqual(getBudgetCategoryIds(69, categories), [69, 71, 72, 73]);
     assert.deepEqual(getBudgetCategoryIds(71, categories), [71]);
+  });
+
+  test("calendar-month spending request spans previous and current month", () => {
+    assert.deepEqual(getSpendingPeriodDates(new Date(2026, 0, 17)), { startDate: "2025-12-01", endDate: "2026-01-31" });
+  });
+
+  test("spending maps category totals to parent and child limits without double counting", () => {
+    const categories = [parent, expense, { id: 72, parent_id: 69, category_type: "expense" }];
+    const periods = [
+      { start_date: "2026-09-01", categories: { 69: -100, 71: -200, 72: -50 } },
+      { start_date: "2026-10-01", categories: { 69: -200, 71: -400, 72: -50 } },
+    ];
+    assert.deepEqual(getBudgetProgress({ category_id: 69, amount: 1000 }, categories, periods, new Date(2026, 9, 17)), { spent: 650, percent: 65 });
+    assert.deepEqual(getBudgetProgress({ category_id: 71, amount: 200 }, categories, periods, new Date(2026, 9, 17)), { spent: 400, percent: 200 });
+    assert.deepEqual(getBudgetProgress({ category_id: 69, amount: 1000 }, categories, periods, new Date(2026, 8, 1)), { spent: 350, percent: 35 });
+  });
+
+  test("missing or malformed spending never displays fabricated zero progress", () => {
+    const budget = { category_id: 71, amount: 1000 };
+    const date = new Date(2026, 9, 17);
+    assert.equal(getBudgetProgress(budget, [expense], [], date), undefined);
+    assert.equal(getBudgetProgress(budget, [expense], [{ start_date: "2026-10-01", categories: { 71: "-50" } }], date), undefined);
+    assert.equal(getBudgetProgress(budget, [expense], [{ start_date: "2026-10-01", categories: { 71: 50 } }], date), undefined);
   });
 
   test("show all 50 saved budgets without client-side pagination or truncation", () => {

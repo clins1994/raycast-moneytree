@@ -43,7 +43,7 @@ Edit custom category names, parent categories, and icons.
 
 ### List Budgets
 
-View synced category budget **limits** by name. Press Enter to edit a saved limit, create a new limit for an expense category without one, or delete a limit after a confirmation. Writes re-read the saved budgets to check the result. This does not show spending or remaining budget; it does not reconcile household reimbursements, credit card settlements, or prepaid card top-ups.
+View synced category budget limits alongside current-month spending, percentages, and remaining amounts when Moneytree's Android spending presenter is available. Press Enter for a budget detail with monthly progress, previous-month spending, and current-month transactions. Edit via the action panel or the standard edit shortcut; create a new limit for an expense category without one, or delete a limit after confirmation. Writes re-read saved budgets to check the result. Spending does not reconcile household reimbursements, credit card settlements, or prepaid card top-ups.
 
 ### Ask Moneytree
 
@@ -58,9 +58,7 @@ Ask Raycast AI about your Moneytree data using the extension's tools:
 
 AI tools that update transactions, categories, or budgets mutate your
 Moneytree data. Suggestions and budget plans alone do not save limits.
-Budget management uses Moneytree endpoints identified from its Android app;
-these are not a documented public API and may change. The budget response
-contains saved category limits, not spending progress or remaining balances.
+Budget management and monthly spending use Moneytree endpoints identified from its Android app; these are not a documented public API and may change. Saved limits and spending come from separate responses; if the spending response is unavailable, the saved limit remains visible.
 
 ## Setup
 

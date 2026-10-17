@@ -1,4 +1,4 @@
-import { getBudgets, getCategories, putBudget, removeBudget, type Budget } from "./api";
+import { getBudgets, getCategories, putBudget, removeBudget, type Budget, type SpendingPeriod } from "./api";
 import type { Category } from "./types";
 
 export type BudgetWithCategory = Budget & { category: Category; parentName?: string };
@@ -26,6 +26,35 @@ export function getBudgetCategoryIds(categoryId: number, categories: Category[])
     }
   }
   return [...ids];
+}
+
+export function getSpendingPeriodDates(date: Date): { startDate: string; endDate: string } {
+  const format = (value: Date) =>
+    `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
+  return {
+    startDate: format(new Date(date.getFullYear(), date.getMonth() - 1, 1)),
+    endDate: format(new Date(date.getFullYear(), date.getMonth() + 1, 0)),
+  };
+}
+
+export function getBudgetProgress(
+  budget: Budget,
+  categories: Category[],
+  periods: SpendingPeriod[],
+  date: Date,
+): { spent: number; percent: number } | undefined {
+  const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`;
+  const period = periods.find((item) => item.start_date === month);
+  if (!period || !period.categories || typeof period.categories !== "object" || Array.isArray(period.categories))
+    return undefined;
+  if (!Number.isSafeInteger(budget.amount) || budget.amount <= 0) return undefined;
+  const values = getBudgetCategoryIds(budget.category_id, categories).map((id) => period.categories[String(id)] ?? 0);
+  if (values.some((value) => typeof value !== "number" || !Number.isFinite(value))) return undefined;
+  // Android expense amounts are signed; an unexpected positive sum must not appear as zero spending.
+  const sum = values.reduce((total, value) => total + value, 0);
+  if (sum > 0) return undefined;
+  const spent = Math.max(0, -sum);
+  return { spent, percent: (spent / budget.amount) * 100 };
 }
 
 export function describeBudgets(budgets: Budget[], categories: Category[]): BudgetWithCategory[] {

@@ -225,10 +225,12 @@ export function TransactionsList({
   accountId,
   initialQuery,
   budgetCategory,
+  dateRange,
 }: {
   accountId?: string;
   initialQuery?: string;
   budgetCategory?: { id: number; name: string; categories: Category[] };
+  dateRange?: { startDate: string; endDate: string };
 }) {
   const [searchText, setSearchText] = useState(initialQuery || "");
   const [accountFilter, setAccountFilter] = useState(accountId || "");
@@ -255,7 +257,7 @@ export function TransactionsList({
   const { isLoading, data, pagination, revalidate } = useCachedPromise(
     (query: string, acctId: string, selectedIds?: number[]) =>
       async ({ page }: { page: number }) => {
-        const options = { query: query || undefined, accountId: acctId ? Number(acctId) : undefined };
+        const options = { query: query || undefined, accountId: acctId ? Number(acctId) : undefined, ...dateRange };
         if (selectedIds) {
           // The transactions endpoint has no verified category filter. Read the complete
           // recent range before filtering so matches on later pages are not omitted.
@@ -281,7 +283,7 @@ export function TransactionsList({
           hasMore: fetchedSoFar < totalCount && response.transactions.length > 0,
         };
       },
-    [searchText, effectiveAccountId, categoryIds],
+    [searchText, effectiveAccountId, categoryIds, dateRange?.startDate, dateRange?.endDate],
     { keepPreviousData: !accountId && !budgetCategory },
   );
 
@@ -324,7 +326,7 @@ export function TransactionsList({
           title={searchText ? "No Matching Transactions" : "No Transactions"}
           description={
             budgetCategory
-              ? `No matching transactions in the ${searchText ? "searched six-month" : "last 30-day"} range (including subcategories). This is not budget spending progress.`
+              ? `No matching transactions ${dateRange ? "this month" : searchText ? "in the searched six-month range" : "in the last 30 days"} (including subcategories).`
               : searchText
                 ? `No transactions matching "${searchText}"`
                 : "No transactions found for the last 30 days."

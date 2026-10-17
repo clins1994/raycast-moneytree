@@ -13,13 +13,24 @@ import {
 import { useCachedPromise } from "@raycast/utils";
 import { BudgetForm } from "./components/BudgetForm";
 import { TransactionsList } from "./components/TransactionsList";
-import { changeBudget, describeBudgets, getBudgetContext } from "./lib/budgets";
+import { BudgetDetails } from "./components/BudgetDetails";
+import { getMonthlySpending } from "./lib/api";
+import {
+  changeBudget,
+  describeBudgets,
+  getBudgetContext,
+  getBudgetProgress,
+  getSpendingPeriodDates,
+} from "./lib/budgets";
 
 const formatJPY = new Intl.NumberFormat("ja-JP", { style: "currency", currency: "JPY" });
 
 export default function Command() {
   const { data, isLoading, error, revalidate } = useCachedPromise(getBudgetContext, []);
   const budgets = data ? describeBudgets(data.budgets, data.categories) : [];
+  const today = new Date();
+  const { startDate, endDate } = getSpendingPeriodDates(today);
+  const { data: spending, revalidate: revalidateSpending } = useCachedPromise(getMonthlySpending, [startDate, endDate]);
   const createAction = data && (
     <Action.Push
       title="Create Budget"
@@ -67,9 +78,31 @@ export default function Command() {
             key={budget.category_id}
             title={budget.category.name}
             subtitle={budget.parentName}
-            accessories={[{ text: formatJPY.format(budget.amount) }]}
+            accessories={(() => {
+              const progress = spending && data && getBudgetProgress(budget, data.categories, spending, today);
+              return progress
+                ? [
+                    {
+                      text: `${"━".repeat(Math.min(8, Math.round(progress.percent / 12.5)))}${"─".repeat(8 - Math.min(8, Math.round(progress.percent / 12.5)))} ${formatJPY.format(progress.spent)} / ${formatJPY.format(budget.amount)} · ${Math.round(progress.percent)}%`,
+                      tooltip: "This month: spent / saved limit",
+                    },
+                  ]
+                : [{ text: formatJPY.format(budget.amount), tooltip: "Saved limit; spending unavailable" }];
+            })()}
             actions={
               <ActionPanel>
+                <Action.Push
+                  title="Show Budget Details"
+                  icon={Icon.Coins}
+                  target={
+                    <BudgetDetails
+                      budget={budget}
+                      budgets={budgets}
+                      categories={data?.categories ?? []}
+                      onSaved={revalidate}
+                    />
+                  }
+                />
                 <Action.Push
                   title="Edit Budget"
                   icon={Icon.Pencil}
@@ -108,7 +141,10 @@ export default function Command() {
                   title="Refresh Budgets"
                   icon={Icon.ArrowClockwise}
                   shortcut={Keyboard.Shortcut.Common.Refresh}
-                  onAction={revalidate}
+                  onAction={() => {
+                    revalidate();
+                    revalidateSpending();
+                  }}
                 />
               </ActionPanel>
             }
