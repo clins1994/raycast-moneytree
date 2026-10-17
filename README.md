@@ -58,10 +58,9 @@ Ask Raycast AI about your Moneytree data using the extension's tools:
 
 AI tools that update transactions, categories, or budgets mutate your
 Moneytree data. Suggestions and budget plans alone do not save limits.
-The write API was identified from the Android app. A reversible live
-create, update, and delete test passed through the local AI tools; the
-List Budgets form still needs hands-on UI verification. See
-`docs/budget-api-exploration.md`.
+Budget management uses Moneytree endpoints identified from its Android app;
+these are not a documented public API and may change. The budget response
+contains saved category limits, not spending progress or remaining balances.
 
 ## Setup
 
