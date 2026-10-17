@@ -41,6 +41,10 @@ Built-in categories. Create a custom child category from any parent
 category, or from an existing child category under the same parent.
 Edit custom category names, parent categories, and icons.
 
+### List Budgets
+
+View synced category budget **limits** by name. Press Enter to edit a saved limit, create a new limit for an expense category without one, or delete a limit after a confirmation. Writes re-read the saved budgets to check the result. This does not show spending or remaining budget; it does not reconcile household reimbursements, credit card settlements, or prepaid card top-ups.
+
 ### Ask Moneytree
 
 Ask Raycast AI about your Moneytree data using the extension's tools:
@@ -50,9 +54,14 @@ Ask Raycast AI about your Moneytree data using the extension's tools:
 - Browse Moneytree categories and custom subcategories
 - Update specific transactions' descriptions or categories
 - Create custom subcategories under existing Moneytree categories
+- List category budget limits and create, update, or delete them on explicit request
 
-AI tools that update transactions or create categories mutate your
-Moneytree data. They should be used only for explicit edit requests.
+AI tools that update transactions, categories, or budgets mutate your
+Moneytree data. Suggestions and budget plans alone do not save limits.
+The write API was identified from the Android app. A reversible live
+create, update, and delete test passed through the local AI tools; the
+List Budgets form still needs hands-on UI verification. See
+`docs/budget-api-exploration.md`.
 
 ## Setup
 
@@ -70,12 +79,16 @@ Moneytree data. They should be used only for explicit edit requests.
 - **Direct communication**: All API calls go directly to
   Moneytree servers — no third-party services involved
 - **Limited writes**: The extension can update transaction
-  descriptions/categories and create or edit custom subcategories
+  descriptions/categories, create or edit custom subcategories, and manage category budget limits
 - **Local caching**: Data is cached locally and expires after
   a few minutes
 - **No data collection**: Nothing is collected or shared — your
   information stays between you and Moneytree
 - **Open source**: The source code is available for review
+
+## Development
+
+Run `node --test tests/budgets.test.mjs` for isolated budget CRUD service tests, `npm run lint` for extension linting, and `npm run build` for an extension build. `npx ray evals` runs mocked AI-tool evals after Raycast developer sign-in (`npx ray login`).
 
 ## Disclaimer
 
