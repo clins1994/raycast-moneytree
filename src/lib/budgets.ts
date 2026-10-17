@@ -16,6 +16,18 @@ export async function getBudgetContext(): Promise<{ budgets: Budget[]; categorie
   return { budgets, categories };
 }
 
+export function getBudgetCategoryIds(categoryId: number, categories: Category[]): number[] {
+  const ids = new Set([categoryId]);
+  let previousSize = 0;
+  while (ids.size !== previousSize) {
+    previousSize = ids.size;
+    for (const category of categories) {
+      if (category.parent_id !== null && ids.has(category.parent_id)) ids.add(category.id);
+    }
+  }
+  return [...ids];
+}
+
 export function describeBudgets(budgets: Budget[], categories: Category[]): BudgetWithCategory[] {
   const byId = new Map(categories.map((category) => [category.id, category]));
   return budgets.flatMap((budget) => {

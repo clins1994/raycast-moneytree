@@ -42,7 +42,7 @@ try {
       },
     ],
   });
-  const { changeBudget, describeBudgets, saveBudgetForTool } = await import(output);
+  const { changeBudget, describeBudgets, getBudgetCategoryIds, saveBudgetForTool } = await import(output);
   const expense = { id: 71, name: "Train", parent_id: 69, category_type: "expense" };
   const parent = { id: 69, name: "Transport", parent_id: null, category_type: "expense" };
   const income = { id: 101, name: "Salary", parent_id: null, category_type: "income" };
@@ -81,6 +81,18 @@ try {
       ["put", 71, 1234],
       ["put", 71, 2345],
     ]);
+  });
+
+  test("budget transaction category IDs include descendants but not sibling categories", () => {
+    const categories = [
+      parent,
+      expense,
+      { id: 72, name: "Bus", parent_id: 69, category_type: "expense" },
+      { id: 73, name: "Express Bus", parent_id: 72, category_type: "expense" },
+      income,
+    ];
+    assert.deepEqual(getBudgetCategoryIds(69, categories), [69, 71, 72, 73]);
+    assert.deepEqual(getBudgetCategoryIds(71, categories), [71]);
   });
 
   test("show all 50 saved budgets without client-side pagination or truncation", () => {

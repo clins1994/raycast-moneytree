@@ -1,6 +1,18 @@
-import { Action, ActionPanel, Alert, Icon, List, Toast, confirmAlert, popToRoot, showToast } from "@raycast/api";
+import {
+  Action,
+  ActionPanel,
+  Alert,
+  Icon,
+  Keyboard,
+  List,
+  Toast,
+  confirmAlert,
+  popToRoot,
+  showToast,
+} from "@raycast/api";
 import { useCachedPromise } from "@raycast/utils";
 import { BudgetForm } from "./components/BudgetForm";
+import { TransactionsList } from "./components/TransactionsList";
 import { changeBudget, describeBudgets, getBudgetContext } from "./lib/budgets";
 
 const formatJPY = new Intl.NumberFormat("ja-JP", { style: "currency", currency: "JPY" });
@@ -12,6 +24,7 @@ export default function Command() {
     <Action.Push
       title="Create Budget"
       icon={Icon.Plus}
+      shortcut={Keyboard.Shortcut.Common.New}
       target={<BudgetForm categories={data.categories} budgets={budgets} onSaved={revalidate} />}
     />
   );
@@ -38,7 +51,7 @@ export default function Command() {
   }
 
   return (
-    <List isLoading={isLoading} navigationTitle="Saved Category Budget Limits">
+    <List isLoading={isLoading} navigationTitle="Budgets">
       {error ? (
         <List.EmptyView icon={Icon.ExclamationMark} title="Could Not Load Budgets" description={error.message} />
       ) : !isLoading && !budgets.length ? (
@@ -60,6 +73,7 @@ export default function Command() {
                 <Action.Push
                   title="Edit Budget"
                   icon={Icon.Pencil}
+                  shortcut={Keyboard.Shortcut.Common.Edit}
                   target={
                     <BudgetForm
                       categories={data?.categories ?? []}
@@ -69,14 +83,33 @@ export default function Command() {
                     />
                   }
                 />
+                <Action.Push
+                  title="Show Transactions"
+                  icon={Icon.Receipt}
+                  target={
+                    <TransactionsList
+                      budgetCategory={{
+                        id: budget.category_id,
+                        name: budget.category.name,
+                        categories: data?.categories ?? [],
+                      }}
+                    />
+                  }
+                />
                 {createAction}
                 <Action
                   title="Delete Budget"
                   icon={Icon.Trash}
                   style={Action.Style.Destructive}
+                  shortcut={Keyboard.Shortcut.Common.Remove}
                   onAction={() => deleteBudget(budget.category_id, budget.category.name, budget.amount)}
                 />
-                <Action title="Refresh Budgets" icon={Icon.ArrowClockwise} onAction={revalidate} />
+                <Action
+                  title="Refresh Budgets"
+                  icon={Icon.ArrowClockwise}
+                  shortcut={Keyboard.Shortcut.Common.Refresh}
+                  onAction={revalidate}
+                />
               </ActionPanel>
             }
           />
