@@ -68,22 +68,21 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
       });
 
       if (!retryResponse.ok) {
-        console.debug(`[API] Retry failed: ${retryResponse.status} ${retryResponse.statusText}`);
-        throw new Error(`API request failed: ${retryResponse.status} ${retryResponse.statusText}`);
+        console.debug(`[API] Retry failed: ${retryResponse.status}`);
+        throw new Error(`API request failed: ${retryResponse.status}`);
       }
 
       console.debug(`[API] ${method} ${url} - Success (after refresh)`);
       return parseApiResponse<T>(retryResponse);
-    } catch (error) {
-      console.debug(`[API] Retried request failed for ${url}: ${error}`);
-      throw error;
+    } catch {
+      console.debug(`[API] Retried request failed for ${url}`);
+      throw new Error("Authentication failed. Please check your credentials.");
     }
   }
 
   if (!response.ok) {
-    const errorText = await response.text();
-    console.debug(`[API] ${method} ${url} - Error ${response.status}: ${errorText.substring(0, 200)}`);
-    throw new Error(`API request failed: ${response.status} ${errorText}`);
+    console.debug(`[API] ${method} ${url} - Error ${response.status}`);
+    throw new Error(`API request failed: ${response.status}`);
   }
 
   console.debug(`[API] ${method} ${url} - Success (${response.status})`);
