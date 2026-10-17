@@ -1,61 +1,89 @@
 # Moneytree
 
-View and manage your financial data from Moneytree directly from Raycast. This extension provides quick access to your financial credentials, accounts, balances and latest transactions without leaving your workflow.
+View and manage your financial data from
+[Moneytree](https://getmoneytree.com/jp/home) directly in Raycast.
+Quick access to credentials, accounts, balances, transactions, and categories
+without leaving your workflow.
 
-If you're concerned about security, please read the [Regarding Security](#regarding-security) section at the end of this document.
+## Features
 
-## Contributing
+### List Credentials
 
-Contributions are welcome! Please feel free to submit a pull request. For major changes, please open an issue first to discuss what you would like to change.
+View all your connected financial institutions grouped by type:
+Banks, Credit Cards, Investments, Digital Money, Points, and Others.
+Each credential shows the total balance across its accounts.
+Filter by type using the dropdown.
 
-## License
+### List Accounts
 
-This project is licensed under the MIT License.
+Browse individual accounts grouped by credential/institution.
+Each account shows its type and current balance.
+Filter by credential using the dropdown.
+
+### List Transactions
+
+Search and browse transactions grouped by month. Transactions show
+the day of the month, a category icon, description, account name,
+and amount (color-coded for income/expense).
+
+- **Search**: Type in the search bar to search server-side across
+  6 months of transactions
+- **Filter**: Use the account dropdown to filter by account
+- **Launch Argument**: Pre-fill a search query before opening
+- **Pagination**: Scroll down to automatically load more
+- **Edit**: Update a transaction's custom description or category
+
+### List Categories
+
+Browse Moneytree categories grouped by parent category. The filter
+defaults to **Custom** and can switch between Custom, All, and
+Built-in categories. Create a custom child category from any parent
+category, or from an existing child category under the same parent.
+Edit custom category names, parent categories, and icons.
+
+### Ask Moneytree
+
+Ask Raycast AI about your Moneytree data using the extension's tools:
+
+- Search transactions by merchant, date range, account, or description
+- Inspect credentials, account balances, and connection status
+- Browse Moneytree categories and custom subcategories
+- Update specific transactions' descriptions or categories
+- Create custom subcategories under existing Moneytree categories
+
+AI tools that update transactions or create categories mutate your
+Moneytree data. They should be used only for explicit edit requests.
+
+## Setup
+
+1. Install the extension
+2. Set your Moneytree email and password in extension preferences
+3. Enable "Auto Re-login" (recommended) to keep the session alive
+
+## Security
+
+- **Encrypted credentials**: Email and password are stored in
+  Raycast preferences, secured by your system Keychain (macOS)
+  or Credential Manager (Windows)
+- **Secure tokens**: OAuth tokens are encrypted in system-level
+  secure storage
+- **Direct communication**: All API calls go directly to
+  Moneytree servers — no third-party services involved
+- **Limited writes**: The extension can update transaction
+  descriptions/categories and create or edit custom subcategories
+- **Local caching**: Data is cached locally and expires after
+  a few minutes
+- **No data collection**: Nothing is collected or shared — your
+  information stays between you and Moneytree
+- **Open source**: The source code is available for review
 
 ## Disclaimer
 
-- **This is not an official Moneytree product**
-- This extension is an independent, open-source project created by the community. It is not affiliated with, endorsed by, or supported by Moneytree. It is provided "as is" and without any warranty
-- The developers of this extension are not responsible for any issues, data loss, or security breaches
-- Use of this extension is at your own risk
-- Moneytree may change their API at any time, which could break this extension
-- This extension is not guaranteed to work with future versions of Moneytree's services
+This is not an official Moneytree product. It is an independent,
+open-source project not affiliated with, endorsed by, or supported
+by Moneytree. Use at your own risk. Moneytree may change their API
+at any time, which could break this extension.
 
-## Regarding Security
+## License
 
-We understand that handling financial data requires the highest level of security. Here's why this extension is safe to use:
-
-### 1. **Industry-Standard Authentication (OAuth 2.0 with PKCE)**
-- The extension uses **OAuth 2.0 with PKCE** (Proof Key for Code Exchange), the same secure authentication protocol used by major financial institutions
-- PKCE prevents authorization code interception attacks, even if someone intercepts the authorization code
-- This is the same authentication method used by the official Moneytree web application
-
-### 2. **Secure Credential Storage**
-- Your Moneytree email and password are stored in **Raycast's encrypted LocalStorage**, which is protected by your system's keychain
-- Access tokens are stored securely and automatically refreshed when they expire
-- No credentials are ever stored in plain text or transmitted to third parties
-
-### 3. **Direct API Communication**
-- The extension communicates **directly** with Moneytree's API endpoints
-- No data passes through any intermediate servers or third-party services
-- All API requests use the same endpoints and security measures as the official Moneytree web application (https://myaccount.getmoneytree.com, https://app.getmoneytree.com)
-
-#### 4. **Read-Only Operations**
-- Currently, the extension only performs **read operations** (viewing data)
-- No write operations (transfers, payments, modifications) are implemented
-- This significantly reduces the risk of accidental or malicious actions
-
-#### 5. **Open Source & Auditable**
-- The extension's source code is open and available for review
-- You can audit exactly what data is being accessed and how it's being handled
-- Community contributions and security reviews help ensure the code remains secure
-
-#### 6. **Local Caching**
-- Financial data is cached locally on your device using Raycast's secure cache system
-- Cached data reduces the number of API calls and improves privacy
-- Cache expires automatically after a short period (2-5 minutes depending on data type)
-
-#### 7. **No Data Collection**
-- The extension does not collect, store, or transmit any usage analytics
-- No personal or financial data is sent to any service other than Moneytree's official API
-- Your data stays between you and Moneytree
+MIT
