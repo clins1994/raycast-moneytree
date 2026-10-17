@@ -85,10 +85,6 @@ contains saved category limits, not spending progress or remaining balances.
   information stays between you and Moneytree
 - **Open source**: The source code is available for review
 
-## Development
-
-Run `node --test tests/budgets.test.mjs` for isolated budget CRUD service tests, `npm run lint` for extension linting, and `npm run build` for an extension build. `npx ray evals` runs mocked AI-tool evals after Raycast developer sign-in (`npx ray login`).
-
 ## Disclaimer
 
 This is not an official Moneytree product. It is an independent,
