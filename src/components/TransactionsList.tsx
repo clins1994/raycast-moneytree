@@ -1,8 +1,7 @@
 import { Action, ActionPanel, Color, Icon, Keyboard, LaunchType, List, launchCommand } from "@raycast/api";
 import { useCachedPromise } from "@raycast/utils";
 import { useEffect, useMemo, useState } from "react";
-import { Account, Category, Transaction } from "../lib/types";
-import { getBudgetCategoryIds } from "../lib/budgets";
+import { Account, Transaction } from "../lib/types";
 import { formatCurrency } from "../lib/format";
 import { LogoutAction } from "./logout-action";
 import { fetchTransactionPage, getCachedAccounts } from "../lib/moneytree";
@@ -229,7 +228,7 @@ export function TransactionsList({
 }: {
   accountId?: string;
   initialQuery?: string;
-  budgetCategory?: { id: number; name: string; categories: Category[] };
+  budgetCategory?: { id: number; name: string };
   dateRange?: { startDate: string; endDate: string };
 }) {
   const [searchText, setSearchText] = useState(initialQuery || "");
@@ -250,10 +249,8 @@ export function TransactionsList({
 
   const effectiveAccountId = accountFilter || accountId || "";
 
-  const categoryIds = useMemo(
-    () => (budgetCategory ? getBudgetCategoryIds(budgetCategory.id, budgetCategory.categories) : undefined),
-    [budgetCategory?.id, budgetCategory?.categories],
-  );
+  // Budgets count only their own category, not subcategories.
+  const categoryIds = useMemo(() => (budgetCategory ? [budgetCategory.id] : undefined), [budgetCategory?.id]);
   const { isLoading, data, pagination, revalidate } = useCachedPromise(
     (query: string, acctId: string, selectedIds?: number[]) =>
       async ({ page }: { page: number }) => {

@@ -1,20 +1,10 @@
-import {
-  Action,
-  ActionPanel,
-  Alert,
-  Color,
-  Icon,
-  Keyboard,
-  List,
-  Toast,
-  confirmAlert,
-  popToRoot,
-  showToast,
-} from "@raycast/api";
-import { getProgressIcon, useCachedPromise } from "@raycast/utils";
+import { Action, ActionPanel, Alert, Icon, Keyboard, List, Toast, confirmAlert, showToast } from "@raycast/api";
+import { getProgressIcon, useCachedPromise, useCachedState } from "@raycast/utils";
+import { useState } from "react";
 import { BudgetForm } from "./components/BudgetForm";
 import { TransactionsList } from "./components/TransactionsList";
 import { BudgetDetails } from "./components/BudgetDetails";
+import { budgetProgressColor } from "./lib/budget-chart";
 import { getMonthlySpending } from "./lib/api";
 import {
   changeBudget,
@@ -23,23 +13,41 @@ import {
   getBudgetProgress,
   getBudgetTotals,
   getSpendingPeriodDates,
+  organizeBudgets,
+  type BudgetFilter,
+  BUDGET_SORT_LABELS,
+  type BudgetSort,
 } from "./lib/budgets";
 
 const formatJPY = new Intl.NumberFormat("ja-JP", { style: "currency", currency: "JPY" });
 
 export default function Command() {
+  const [selectedItemId, setSelectedItemId] = useState<string>();
+  const [filter, setFilter] = useState<BudgetFilter>("all");
+  const [storedSort, setSort] = useCachedState<BudgetSort>("budget-sort", "percent");
+  const sort: BudgetSort = storedSort in BUDGET_SORT_LABELS ? storedSort : "percent";
   const { data, isLoading, error, revalidate } = useCachedPromise(getBudgetContext, []);
   const budgets = data ? describeBudgets(data.budgets, data.categories) : [];
   const today = new Date();
   const { startDate, endDate } = getSpendingPeriodDates(today);
   const { data: spending, revalidate: revalidateSpending } = useCachedPromise(getMonthlySpending, [startDate, endDate]);
-  const totals = data && getBudgetTotals(data.budgets, data.categories, spending, today);
+  const totals = data && getBudgetTotals(data.budgets, spending, today);
+  const visibleBudgets = organizeBudgets(budgets, spending, today, filter, sort);
+  const totalLabel = totals
+    ? totals.spent === undefined
+      ? `Total limit ${formatJPY.format(totals.limit)} · spending unavailable`
+      : `Total ${formatJPY.format(totals.spent)} / ${formatJPY.format(totals.limit)} · ${totals.limit > 0 ? Math.round((totals.spent / totals.limit) * 100) : 0}%`
+    : undefined;
+  async function onSaved(categoryId: number) {
+    await revalidate();
+    setSelectedItemId(String(categoryId));
+  }
   const createAction = data && (
     <Action.Push
       title="Create Budget"
       icon={Icon.Plus}
       shortcut={Keyboard.Shortcut.Common.New}
-      target={<BudgetForm categories={data.categories} budgets={budgets} onSaved={revalidate} />}
+      target={<BudgetForm categories={data.categories} budgets={budgets} onSaved={onSaved} />}
     />
   );
 
@@ -54,7 +62,6 @@ export default function Command() {
       await changeBudget("delete", categoryId);
       await revalidate();
       await showToast({ style: Toast.Style.Success, title: `${categoryName} budget deleted` });
-      await popToRoot({ clearSearchBar: true });
     } catch (cause) {
       await showToast({
         style: Toast.Style.Failure,
@@ -65,7 +72,20 @@ export default function Command() {
   }
 
   return (
-    <List isLoading={isLoading} navigationTitle="Budgets">
+    <List
+      isLoading={isLoading}
+      navigationTitle="Budgets"
+      searchBarPlaceholder={`Search budgets · Sorted by ${BUDGET_SORT_LABELS[sort]}`}
+      selectedItemId={selectedItemId}
+      onSelectionChange={(id) => setSelectedItemId(id ?? undefined)}
+      searchBarAccessory={
+        <List.Dropdown tooltip="Filter Budgets" value={filter} onChange={(value) => setFilter(value as BudgetFilter)}>
+          <List.Dropdown.Item title="All Budgets" value="all" />
+          <List.Dropdown.Item title="Over Budget" value="over" />
+          <List.Dropdown.Item title="Nearly Used (75–99%)" value="near" />
+        </List.Dropdown>
+      }
+    >
       {error ? (
         <List.EmptyView icon={Icon.ExclamationMark} title="Could Not Load Budgets" description={error.message} />
       ) : !isLoading && !budgets.length ? (
@@ -75,22 +95,27 @@ export default function Command() {
           description="No category budget limits were returned."
           actions={<ActionPanel>{createAction}</ActionPanel>}
         />
-      ) : (
-        <List.Section
-          title="Total Budget"
-          subtitle={
-            totals
-              ? `${totals.spent === undefined ? "Spending unavailable" : formatJPY.format(totals.spent)} / ${formatJPY.format(totals.limit)}`
-              : undefined
+      ) : !isLoading && !visibleBudgets.length ? (
+        <List.EmptyView
+          icon={Icon.MagnifyingGlass}
+          title="No Matching Budgets"
+          description="Choose another filter."
+          actions={
+            <ActionPanel>
+              <Action title="Show All Budgets" icon={Icon.List} onAction={() => setFilter("all")} />
+              {createAction}
+            </ActionPanel>
           }
-        >
-          {budgets.map((budget) => (
+        />
+      ) : (
+        <List.Section title="Budgets" subtitle={totalLabel}>
+          {visibleBudgets.map((budget) => (
             <List.Item
               key={budget.category_id}
+              id={String(budget.category_id)}
               title={budget.category.name}
-              subtitle={budget.parentName}
               accessories={(() => {
-                const progress = spending && data && getBudgetProgress(budget, data.categories, spending, today);
+                const progress = spending && data && getBudgetProgress(budget, spending, today);
                 return progress
                   ? [
                       {
@@ -100,9 +125,12 @@ export default function Command() {
                       {
                         icon: getProgressIcon(
                           Math.min(1, progress.percent / 100),
-                          progress.percent >= 100 ? Color.Red : Color.Green,
+                          budgetProgressColor(progress.percent / 100),
                         ),
-                        text: `${Math.round(progress.percent)}%`,
+                        text: {
+                          value: `${Math.round(progress.percent)}%`,
+                          color: budgetProgressColor(progress.percent / 100),
+                        },
                         tooltip: "Share of this month's budget used",
                       },
                     ]
@@ -118,7 +146,7 @@ export default function Command() {
                         budget={budget}
                         budgets={budgets}
                         categories={data?.categories ?? []}
-                        onSaved={revalidate}
+                        onSaved={onSaved}
                       />
                     }
                   />
@@ -131,7 +159,7 @@ export default function Command() {
                         categories={data?.categories ?? []}
                         budgets={budgets}
                         editing={budget}
-                        onSaved={revalidate}
+                        onSaved={onSaved}
                       />
                     }
                   />
@@ -139,16 +167,20 @@ export default function Command() {
                     title="Show Transactions"
                     icon={Icon.Receipt}
                     target={
-                      <TransactionsList
-                        budgetCategory={{
-                          id: budget.category_id,
-                          name: budget.category.name,
-                          categories: data?.categories ?? [],
-                        }}
-                      />
+                      <TransactionsList budgetCategory={{ id: budget.category_id, name: budget.category.name }} />
                     }
                   />
                   {createAction}
+                  <ActionPanel.Submenu title="Sort Budgets" icon={Icon.ChevronUpDown}>
+                    {(Object.keys(BUDGET_SORT_LABELS) as BudgetSort[]).map((option) => (
+                      <Action
+                        key={option}
+                        title={BUDGET_SORT_LABELS[option]}
+                        icon={option === sort ? Icon.Checkmark : undefined}
+                        onAction={() => setSort(option)}
+                      />
+                    ))}
+                  </ActionPanel.Submenu>
                   <Action
                     title="Delete Budget"
                     icon={Icon.Trash}

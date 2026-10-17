@@ -1,7 +1,7 @@
 import { getBudgets, getCategories, putBudget, removeBudget, type Budget, type SpendingPeriod } from "./api";
 import type { Category } from "./types";
 
-export type BudgetWithCategory = Budget & { category: Category; parentName?: string };
+export type BudgetWithCategory = Budget & { category: Category };
 
 type BudgetAction = "create" | "update" | "delete";
 
@@ -14,18 +14,6 @@ export function validateAmount(value: number): number {
 export async function getBudgetContext(): Promise<{ budgets: Budget[]; categories: Category[] }> {
   const [budgets, categories] = await Promise.all([getBudgets(), getCategories()]);
   return { budgets, categories };
-}
-
-export function getBudgetCategoryIds(categoryId: number, categories: Category[]): number[] {
-  const ids = new Set([categoryId]);
-  let previousSize = 0;
-  while (ids.size !== previousSize) {
-    previousSize = ids.size;
-    for (const category of categories) {
-      if (category.parent_id !== null && ids.has(category.parent_id)) ids.add(category.id);
-    }
-  }
-  return [...ids];
 }
 
 export function getSpendingPeriodDates(date: Date): { startDate: string; endDate: string } {
@@ -45,9 +33,12 @@ export function getAverageSpendingPeriodDates(date: Date): { startDate: string; 
   return { startDate: format(start), endDate: format(end) };
 }
 
+/**
+ * Moneytree budgets are independent per category: a parent's budget does not include its subcategories' spending
+ * (verified against the Moneytree app), so only the budget's own category counts.
+ */
 export function getBudgetProgress(
   budget: Budget,
-  categories: Category[],
   periods: SpendingPeriod[],
   date: Date,
 ): { spent: number; percent: number } | undefined {
@@ -56,50 +47,80 @@ export function getBudgetProgress(
   if (!period || !period.categories || typeof period.categories !== "object" || Array.isArray(period.categories))
     return undefined;
   if (!Number.isSafeInteger(budget.amount) || budget.amount <= 0) return undefined;
-  const values = getBudgetCategoryIds(budget.category_id, categories).map((id) => period.categories[String(id)] ?? 0);
-  if (values.some((value) => typeof value !== "number" || !Number.isFinite(value))) return undefined;
-  // Android expense amounts are signed; an unexpected positive sum must not appear as zero spending.
-  const sum = values.reduce((total, value) => total + value, 0);
-  if (sum > 0) return undefined;
-  const spent = Math.max(0, -sum);
+  const value = period.categories[String(budget.category_id)] ?? 0;
+  if (typeof value !== "number" || !Number.isFinite(value)) return undefined;
+  // Android expense amounts are signed; an unexpected positive value must not appear as zero spending.
+  if (value > 0) return undefined;
+  const spent = Math.max(0, -value);
   return { spent, percent: (spent / budget.amount) * 100 };
 }
 
+/** Budgets never overlap, so totals are plain sums; spending is omitted if any budget's spending is unavailable. */
 export function getBudgetTotals(
   budgets: Budget[],
-  categories: Category[],
   periods: SpendingPeriod[] | undefined,
   date: Date,
 ): { limit: number; spent?: number } {
   const limit = budgets.reduce((sum, budget) => sum + budget.amount, 0);
   if (!periods || !budgets.length) return { limit };
-  const categoryIds = new Set(budgets.flatMap((budget) => getBudgetCategoryIds(budget.category_id, categories)));
-  // Count a transaction category once even if both its parent and child have budgets.
-  const period = periods.find(
-    (item) => item.start_date === `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`,
-  );
-  if (!period || !period.categories || typeof period.categories !== "object" || Array.isArray(period.categories))
-    return { limit };
-  const values = [...categoryIds].map((id) => period.categories[String(id)] ?? 0);
-  if (values.some((value) => typeof value !== "number" || !Number.isFinite(value))) return { limit };
-  const sum = values.reduce((total, value) => total + value, 0);
-  return sum > 0 ? { limit } : { limit, spent: Math.max(0, -sum) };
+  const spent = budgets.map((budget) => getBudgetProgress(budget, periods, date)?.spent);
+  return spent.every((value) => value !== undefined)
+    ? { limit, spent: spent.reduce<number>((sum, value) => sum + value!, 0) }
+    : { limit };
 }
 
 /** Average over the 12 most recent completed calendar months, never the partial current month. */
-export function getAverageMonthlySpending(
-  budget: Budget,
-  categories: Category[],
-  periods: SpendingPeriod[],
-  date: Date,
-): number | undefined {
+export function getAverageMonthlySpending(budget: Budget, periods: SpendingPeriod[], date: Date): number | undefined {
   const spent = Array.from({ length: 12 }, (_, index) => {
     const month = new Date(date.getFullYear(), date.getMonth() - index - 1, 1);
-    return getBudgetProgress(budget, categories, periods, month)?.spent;
+    return getBudgetProgress(budget, periods, month)?.spent;
   });
   return spent.every((value) => value !== undefined)
     ? spent.reduce<number>((sum, value) => sum + value!, 0) / 12
     : undefined;
+}
+
+export type BudgetFilter = "all" | "over" | "near";
+export type BudgetSort = "percent" | "spent" | "limit" | "name";
+
+export const BUDGET_SORT_LABELS: Record<BudgetSort, string> = {
+  percent: "Most Used (%)",
+  spent: "Most Spent (¥)",
+  limit: "Highest Limit",
+  name: "Name",
+};
+
+export function organizeBudgets(
+  budgets: BudgetWithCategory[],
+  periods: SpendingPeriod[] | undefined,
+  date: Date,
+  filter: BudgetFilter,
+  sort: BudgetSort,
+): BudgetWithCategory[] {
+  const progress = new Map(
+    budgets.map((budget) => [budget.category_id, periods && getBudgetProgress(budget, periods, date)]),
+  );
+  return budgets
+    .filter((budget) => {
+      const percent = progress.get(budget.category_id)?.percent;
+      if (filter === "over") return percent !== undefined && percent >= 100;
+      if (filter === "near") return percent !== undefined && percent >= 75 && percent < 100;
+      return true;
+    })
+    .sort((a, b) => {
+      if (sort === "limit" && a.amount !== b.amount) return b.amount - a.amount;
+      if (sort === "percent") {
+        const aPercent = progress.get(a.category_id)?.percent;
+        const bPercent = progress.get(b.category_id)?.percent;
+        if (aPercent !== bPercent) return (bPercent ?? -1) - (aPercent ?? -1);
+      }
+      if (sort === "spent") {
+        const aSpent = progress.get(a.category_id)?.spent;
+        const bSpent = progress.get(b.category_id)?.spent;
+        if (aSpent !== bSpent) return (bSpent ?? -1) - (aSpent ?? -1);
+      }
+      return a.category.name.localeCompare(b.category.name) || a.category_id - b.category_id;
+    });
 }
 
 export function describeBudgets(budgets: Budget[], categories: Category[]): BudgetWithCategory[] {
@@ -107,7 +128,7 @@ export function describeBudgets(budgets: Budget[], categories: Category[]): Budg
   return budgets.flatMap((budget) => {
     const category = byId.get(budget.category_id);
     if (!category) return [];
-    return [{ ...budget, category, parentName: category.parent_id ? byId.get(category.parent_id)?.name : undefined }];
+    return [{ ...budget, category }];
   });
 }
 

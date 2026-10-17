@@ -43,7 +43,9 @@ Edit custom category names, parent categories, and icons.
 
 ### List Budgets
 
-View synced category budget limits alongside current-month spending and percentage used, plus a total of saved limits and spending across budgeted categories. Press Enter for a budget detail focused on this month's transactions, with progress, previous-month spending, and a calculated average over the previous 12 completed calendar months in the sidebar. The average is shown only when all 12 monthly periods are available; it is not necessarily Moneytree iOS's own average. Edit via the action panel or the standard edit shortcut; create a new limit for an expense category without one, or delete a limit after confirmation. Writes re-read saved budgets to check the result. Spending does not reconcile household reimbursements, credit card settlements, or prepaid card top-ups.
+View synced category budget limits alongside current-month spending and percentage used, plus a total across all budgets. As in the Moneytree app, each budget counts only transactions in its own category, so a parent category's budget does not include its subcategories. Sort by percentage used, amount spent, limit, or name, and filter to over-budget or nearly used budgets. Press Enter for a budget detail with a searchable list of this month's transactions and a chart showing the amount left or over budget, this month's spending against the limit, the average over the previous 12 completed calendar months, and last month's spending. The average is shown only when all 12 monthly periods are available; it is not necessarily Moneytree iOS's own average. Edit via the action panel or the standard edit shortcut; create a new limit for an expense category without one, or delete a limit after confirmation. Writes re-read saved budgets to check the result. Spending does not reconcile household reimbursements, credit card settlements, or prepaid card top-ups.
+
+> **Note:** Budget spending has not been tested with a Moneytree custom spending cycle whose month ends on any day other than the 30th. Figures may differ from the Moneytree app in that case.
 
 ### Ask Moneytree
 
