@@ -43,7 +43,7 @@ Edit custom category names, parent categories, and icons.
 
 ### List Budgets
 
-View synced category budget limits alongside current-month spending, percentages, and remaining amounts when Moneytree's Android spending presenter is available. Press Enter for a budget detail with monthly progress, previous-month spending, and current-month transactions. Edit via the action panel or the standard edit shortcut; create a new limit for an expense category without one, or delete a limit after confirmation. Writes re-read saved budgets to check the result. Spending does not reconcile household reimbursements, credit card settlements, or prepaid card top-ups.
+View synced category budget limits alongside current-month spending and percentage used, plus a total of saved limits and spending across budgeted categories. Press Enter for a budget detail focused on this month's transactions, with progress, previous-month spending, and a calculated average over the previous 12 completed calendar months in the sidebar. The average is shown only when all 12 monthly periods are available; it is not necessarily Moneytree iOS's own average. Edit via the action panel or the standard edit shortcut; create a new limit for an expense category without one, or delete a limit after confirmation. Writes re-read saved budgets to check the result. Spending does not reconcile household reimbursements, credit card settlements, or prepaid card top-ups.
 
 ### Ask Moneytree
 

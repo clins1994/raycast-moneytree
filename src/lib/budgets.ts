@@ -37,6 +37,14 @@ export function getSpendingPeriodDates(date: Date): { startDate: string; endDate
   };
 }
 
+export function getAverageSpendingPeriodDates(date: Date): { startDate: string; endDate: string } {
+  const start = new Date(date.getFullYear(), date.getMonth() - 12, 1);
+  const end = new Date(date.getFullYear(), date.getMonth(), 0);
+  const format = (value: Date) =>
+    `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
+  return { startDate: format(start), endDate: format(end) };
+}
+
 export function getBudgetProgress(
   budget: Budget,
   categories: Category[],
@@ -55,6 +63,43 @@ export function getBudgetProgress(
   if (sum > 0) return undefined;
   const spent = Math.max(0, -sum);
   return { spent, percent: (spent / budget.amount) * 100 };
+}
+
+export function getBudgetTotals(
+  budgets: Budget[],
+  categories: Category[],
+  periods: SpendingPeriod[] | undefined,
+  date: Date,
+): { limit: number; spent?: number } {
+  const limit = budgets.reduce((sum, budget) => sum + budget.amount, 0);
+  if (!periods || !budgets.length) return { limit };
+  const categoryIds = new Set(budgets.flatMap((budget) => getBudgetCategoryIds(budget.category_id, categories)));
+  // Count a transaction category once even if both its parent and child have budgets.
+  const period = periods.find(
+    (item) => item.start_date === `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`,
+  );
+  if (!period || !period.categories || typeof period.categories !== "object" || Array.isArray(period.categories))
+    return { limit };
+  const values = [...categoryIds].map((id) => period.categories[String(id)] ?? 0);
+  if (values.some((value) => typeof value !== "number" || !Number.isFinite(value))) return { limit };
+  const sum = values.reduce((total, value) => total + value, 0);
+  return sum > 0 ? { limit } : { limit, spent: Math.max(0, -sum) };
+}
+
+/** Average over the 12 most recent completed calendar months, never the partial current month. */
+export function getAverageMonthlySpending(
+  budget: Budget,
+  categories: Category[],
+  periods: SpendingPeriod[],
+  date: Date,
+): number | undefined {
+  const spent = Array.from({ length: 12 }, (_, index) => {
+    const month = new Date(date.getFullYear(), date.getMonth() - index - 1, 1);
+    return getBudgetProgress(budget, categories, periods, month)?.spent;
+  });
+  return spent.every((value) => value !== undefined)
+    ? spent.reduce<number>((sum, value) => sum + value!, 0) / 12
+    : undefined;
 }
 
 export function describeBudgets(budgets: Budget[], categories: Category[]): BudgetWithCategory[] {

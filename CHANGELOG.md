@@ -6,6 +6,7 @@
 - Navigate between budgets and transactions; budget details show this month's transactions for the category and its descendants. Spending totals come from Moneytree's monthly presenter rather than a partial transaction search.
 - Add AI tools to read, create, update, and delete category budget limits. Writes require an explicitly requested category and amount or deletion target, validate expense categories, and verify results with a fresh read.
 - Add mocked CRUD tests and AI eval scenarios for read-only suggestions, duplicate budgets, and ambiguous categories.
+- Show total budget spending and limits, keep progress icons beside percentages, and focus budget details on transactions with period dates and a calculated 12-completed-month average in the sidebar.
 - Keep saved limits visible if Moneytree's monthly spending endpoint is unavailable.
 
 ## [Improved Category Management & Metadata Updates] - 2026-06-03

@@ -42,7 +42,17 @@ try {
       },
     ],
   });
-  const { changeBudget, describeBudgets, getBudgetCategoryIds, getBudgetProgress, getSpendingPeriodDates, saveBudgetForTool } = await import(output);
+  const {
+    changeBudget,
+    describeBudgets,
+    getAverageMonthlySpending,
+    getAverageSpendingPeriodDates,
+    getBudgetCategoryIds,
+    getBudgetProgress,
+    getBudgetTotals,
+    getSpendingPeriodDates,
+    saveBudgetForTool,
+  } = await import(output);
   const expense = { id: 71, name: "Train", parent_id: 69, category_type: "expense" };
   const parent = { id: 69, name: "Transport", parent_id: null, category_type: "expense" };
   const income = { id: 101, name: "Salary", parent_id: null, category_type: "income" };
@@ -105,17 +115,58 @@ try {
       { start_date: "2026-09-01", categories: { 69: -100, 71: -200, 72: -50 } },
       { start_date: "2026-10-01", categories: { 69: -200, 71: -400, 72: -50 } },
     ];
-    assert.deepEqual(getBudgetProgress({ category_id: 69, amount: 1000 }, categories, periods, new Date(2026, 9, 17)), { spent: 650, percent: 65 });
-    assert.deepEqual(getBudgetProgress({ category_id: 71, amount: 200 }, categories, periods, new Date(2026, 9, 17)), { spent: 400, percent: 200 });
-    assert.deepEqual(getBudgetProgress({ category_id: 69, amount: 1000 }, categories, periods, new Date(2026, 8, 1)), { spent: 350, percent: 35 });
+    assert.deepEqual(getBudgetProgress({ category_id: 69, amount: 1000 }, categories, periods, new Date(2026, 9, 17)), {
+      spent: 650,
+      percent: 65,
+    });
+    assert.deepEqual(getBudgetProgress({ category_id: 71, amount: 200 }, categories, periods, new Date(2026, 9, 17)), {
+      spent: 400,
+      percent: 200,
+    });
+    assert.deepEqual(getBudgetProgress({ category_id: 69, amount: 1000 }, categories, periods, new Date(2026, 8, 1)), {
+      spent: 350,
+      percent: 35,
+    });
   });
 
   test("missing or malformed spending never displays fabricated zero progress", () => {
     const budget = { category_id: 71, amount: 1000 };
     const date = new Date(2026, 9, 17);
     assert.equal(getBudgetProgress(budget, [expense], [], date), undefined);
-    assert.equal(getBudgetProgress(budget, [expense], [{ start_date: "2026-10-01", categories: { 71: "-50" } }], date), undefined);
-    assert.equal(getBudgetProgress(budget, [expense], [{ start_date: "2026-10-01", categories: { 71: 50 } }], date), undefined);
+    assert.equal(
+      getBudgetProgress(budget, [expense], [{ start_date: "2026-10-01", categories: { 71: "-50" } }], date),
+      undefined,
+    );
+    assert.equal(
+      getBudgetProgress(budget, [expense], [{ start_date: "2026-10-01", categories: { 71: 50 } }], date),
+      undefined,
+    );
+  });
+
+  test("total budget sums limits but deduplicates overlapping parent/child spending", () => {
+    const date = new Date(2026, 9, 17);
+    const budgets = [
+      { category_id: 69, amount: 1000 },
+      { category_id: 71, amount: 500 },
+    ];
+    const periods = [{ start_date: "2026-10-01", categories: { 69: -100, 71: -200 } }];
+    assert.deepEqual(getBudgetTotals(budgets, [parent, expense], periods, date), { limit: 1500, spent: 300 });
+    assert.deepEqual(getBudgetTotals(budgets, [parent, expense], [], date), { limit: 1500 });
+  });
+
+  test("12-month average excludes current partial month and refuses incomplete history", () => {
+    const date = new Date(2026, 9, 17);
+    assert.deepEqual(getAverageSpendingPeriodDates(date), { startDate: "2025-10-01", endDate: "2026-09-30" });
+    const periods = Array.from({ length: 12 }, (_, index) => ({
+      start_date: `${new Date(2025, 9 + index, 1).getFullYear()}-${String(new Date(2025, 9 + index, 1).getMonth() + 1).padStart(2, "0")}-01`,
+      categories: { 71: -120 },
+    }));
+    periods.push({ start_date: "2026-10-01", categories: { 71: -1000 } });
+    assert.equal(getAverageMonthlySpending({ category_id: 71, amount: 500 }, [expense], periods, date), 120);
+    assert.equal(
+      getAverageMonthlySpending({ category_id: 71, amount: 500 }, [expense], periods.slice(1), date),
+      undefined,
+    );
   });
 
   test("show all 50 saved budgets without client-side pagination or truncation", () => {
