@@ -250,6 +250,23 @@
                 "accountName": "Main Checking"
               }
             ]
+          },
+          "get-categories": {
+            "count": 1,
+            "categories": [
+              {
+                "id": 28,
+                "name": "Cafe & Coffee Shop",
+                "parentId": 27,
+                "parentName": "Eating Out",
+                "categoryType": "expense",
+                "isCustom": false
+              }
+            ]
+          },
+          "get-budgets": {
+            "count": 0,
+            "budgets": []
           }
         },
         "expected": [
