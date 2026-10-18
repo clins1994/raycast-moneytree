@@ -306,7 +306,7 @@ export function TransactionsList({
       onSearchTextChange={setSearchText}
       searchText={searchText}
       searchBarPlaceholder="Query"
-      navigationTitle={budgetCategory ? `${budgetCategory.name} Transactions` : "Transactions"}
+      navigationTitle={budgetCategory ? `${budgetCategory.name} Transactions` : accountId ? "Transactions" : undefined}
       throttle
       pagination={budgetCategory ? undefined : pagination}
       searchBarAccessory={
